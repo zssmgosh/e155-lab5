@@ -7,6 +7,8 @@ volatile int direction;
 volatile int magCount;
 volatile int pulseCount;
 volatile float speed;
+int A;
+int B;
 
 int _write(int file, char *ptr, int len) {
   int i = 0;
@@ -17,10 +19,14 @@ int _write(int file, char *ptr, int len) {
 }
 
 int main(void) {
+    configureFlash();
+    configureClock();
     // Enable encoder pins as input
     gpioEnable(GPIO_PORT_A);
     pinMode(A_PIN, GPIO_INPUT);
     pinMode(B_PIN, GPIO_INPUT);
+    GPIOA->PUPDR &= ~(0b11 << 2*gpioPinOffset(B_PIN)); // Set PA7 as pull-up (PUPD7 = 01)
+    GPIOA->PUPDR &= ~(0b11 << 2*gpioPinOffset(A_PIN));
     GPIOA->PUPDR |= (0b01 << 2*gpioPinOffset(B_PIN)); // Set PA7 as pull-up (PUPD7 = 01)
     GPIOA->PUPDR |= (0b01 << 2*gpioPinOffset(A_PIN));
 
@@ -37,16 +43,24 @@ int main(void) {
     SYSCFG->EXTICR[1] &= ~(0b111 << 8);
     SYSCFG->EXTICR[2] &= ~(0b111 << 4);
 
-    // Enable interrupts globally
-    __enable_irq();
-
     // Configure interrupt for falling edge of GPIO pin for button
     EXTI->IMR1 |= (1 << gpioPinOffset(A_PIN));   // Configure mask bit
     EXTI->FTSR1 &= ~(1 << gpioPinOffset(A_PIN));  // Enable rising edge trigger
     EXTI->RTSR1 |= (1 << gpioPinOffset(A_PIN)); // Disable falling edge trigger
     NVIC->ISER[0] |= (1 << 23);                  // Turn on EXTI interrupt in NVIC_ISER (EXTI9_5 is IRQ 23)
-    
+    __NVIC_SetPriority(EXTI9_5_IRQn, 1);
+
+    // Enable interrupts globally
+    __enable_irq();
+    __NVIC_EnableIRQ(EXTI9_5_IRQn);
+
     while(1){
+        if (B == 0) {
+            direction = CW;
+        } else {
+            direction = CCW;
+        }
+
         pulseCount = resetTIMCNT(DELAY_TIM, magCount, MAXPULSE);
         if(magCount >= MAXPULSE){
             magCount = 0;
@@ -67,22 +81,14 @@ int main(void) {
 
 // EXTI lines 5-9 share this handler
 void EXTI9_5_IRQHandler(void){
-    int A = 0;
-    int B = 0;
+    //printf("hi \n");
     // Check that the button was what triggered our interrupt
     if (EXTI->PR1 & (1 << gpioPinOffset(A_PIN))){
         // If so, clear the interrupt (NB: Write 1 to reset.)
-        EXTI->PR1 = (1 << gpioPinOffset(A_PIN));
+        EXTI->PR1 |= (1 << gpioPinOffset(A_PIN));
 
         //A = digitalRead(A_PIN);
         B = digitalRead(B_PIN);
-
-        if (B == 0) {
-            direction = CW;
-        } else {
-            direction = CCW;
-        }
-
         magCount++;
         
     }
