@@ -17,8 +17,8 @@
 #define B_PIN PA9
 #define DELAY_TIM TIM2
 #define PRINT_TIM TIM15
-#define CCW 0
-#define CW 1
+#define CW 0
+#define CCW 1
 #define MAXPULSE 408
 
 #endif // MAIN_H

@@ -20,21 +20,11 @@ void initTIM(TIM_TypeDef * TIMx, uint32_t ms){
   TIMx->CNT = 0;      // Reset count
 }
 
-//void delay_millis(TIM_TypeDef * TIMx, uint32_t ms){
-//  TIMx->ARR = ms;// Set timer max count
-//  TIMx->EGR |= 1;     // Force update
-//  TIMx->SR &= ~(0x1); // Clear UIF
-//  TIMx->CNT = 0;      // Reset count
+void delay_millis(TIM_TypeDef * TIMx, uint32_t ms){
+ TIMx->ARR = ms;// Set timer max count
+ TIMx->EGR |= 1;     // Force update
+ TIMx->SR &= ~(0x1); // Clear UIF
+ TIMx->CNT = 0;      // Reset count
 
-//  while(!(TIMx->SR & 1)); // Wait for UIF to go high
-//}
-
-int resetTIMCNT(TIM_TypeDef * TIMx, int magCount, int maxCount){
-  int pulseCount;
-  if (magCount >= 408) {
-    pulseCount = TIMx->CNT;
-    TIMx->SR &= ~(0x1); // Clear UIF
-    TIMx->CNT = 0;
-  }
-  return pulseCount;
+ while(!(TIMx->SR & 1)); // Wait for UIF to go high
 }
